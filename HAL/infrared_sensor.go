@@ -2,7 +2,9 @@ package HAL
 
 import "github.com/HankWang95/log"
 
-type infraredSensor struct{}
+type infraredSensor struct {
+	status int
+}
 
 func newInfraredSensor() (inS InfraredSensor) {
 	return new(infraredSensor)
