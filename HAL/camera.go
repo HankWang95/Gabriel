@@ -1,5 +1,7 @@
 package HAL
 
+import "github.com/HankWang95/log"
+
 type camera struct {
 }
 
@@ -8,9 +10,16 @@ func newCamera() (c Camera) {
 }
 
 func (c *camera) TakePhoto() (path string, err error) {
+	log.Info("Take photo - ", path)
 	return
 }
 
-func (c *camera) RecordVideo(sec int) (path string, err error) {
+func (c *camera) StartPushVideoStream() (path string, err error) {
+	log.Info("Start push video stream -", path)
+	return
+}
+
+func (c *camera) StopPushVideoStream() (path string, err error) {
+	log.Info("Stop push video stream -", path)
 	return
 }
