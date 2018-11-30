@@ -28,7 +28,7 @@ func TestInfraredEmitter_SendInfraredSignal(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(4 * time.Second)
 	}
 
 }

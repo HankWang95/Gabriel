@@ -70,7 +70,7 @@ var alarmIsRunning = struct {
 	Mutex:   &sync.Mutex{},
 	running: false,
 }
-var ticker = make(chan *time.Ticker, 1)
+var ticker = make(chan *time.Ticker)
 
 // 告警系统- 在空调开起 8小时 以后 自动关闭
 func (inE *infraredEmitter) listenSignal() {
@@ -80,6 +80,7 @@ func (inE *infraredEmitter) listenSignal() {
 			if signal == TurnOff {
 				if alarmIsRunning.running {
 					stopToken <- struct{}{}
+					log.Info("send stop token")
 				}
 			} else {
 				go inE.alarmRun()
@@ -90,7 +91,6 @@ func (inE *infraredEmitter) listenSignal() {
 
 // 警报器
 func (inE *infraredEmitter) alarmRun() {
-	log.Debug("alarm Run called running:", alarmIsRunning.running)
 	if alarmIsRunning.running {
 		ticker <- time.NewTicker(3 * time.Second)
 		return
@@ -100,29 +100,30 @@ func (inE *infraredEmitter) alarmRun() {
 	alarmIsRunning.running = true
 	alarmIsRunning.Unlock()
 
-	ticker <- time.NewTicker(3 * time.Second)
-	log.Info("go func start")
 	var t *time.Ticker
 	t = time.NewTicker(3 * time.Second)
 
 Loop:
 	for {
-		log.Debug("i am in loop")
 		select {
 		case t = <-ticker:
-			log.Debug("update ticker")
 			break
 		case <-t.C:
-			log.Debug("lingggggggg")
-			inE.SendInfraredSignal(TurnOff)
+			log.Info("告警：空调运行时间过长，自动关闭")
+			alarmIsRunning.Lock()
+			alarmIsRunning.running = false
+			alarmIsRunning.Unlock()
+			err := inE.SendInfraredSignal(TurnOff)
+			if err != nil {
+				log.Error(err)
+			}
 			break Loop
 		case <-stopToken:
-			log.Debug("ticker stop!")
+			alarmIsRunning.Lock()
+			alarmIsRunning.running = false
+			alarmIsRunning.Unlock()
 			break Loop
 		}
-		log.Info("go func done")
 	}
-	alarmIsRunning.Lock()
-	alarmIsRunning.running = false
-	alarmIsRunning.Unlock()
+
 }
