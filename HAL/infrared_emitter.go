@@ -16,7 +16,7 @@ const (
 type infraredEmitter struct {
 	lastSignal int
 	*sync.RWMutex
-	alarmTimer chan int
+	signal chan int
 }
 
 type InfraredTemplate struct{}
@@ -25,8 +25,8 @@ func newInfraredEmitter() (inE InfraredEmitter) {
 	inEStruct := new(infraredEmitter)
 	inEStruct.RWMutex = &sync.RWMutex{}
 	inEStruct.lastSignal = -1
-	inEStruct.alarmTimer = make(chan int)
-	go inEStruct.alarmForInfraredEmitter()
+	inEStruct.signal = make(chan int)
+	go inEStruct.listenSignal()
 	return inEStruct
 }
 
@@ -40,7 +40,7 @@ func (inE *infraredEmitter) SendInfraredSignal(signalTemplateID int) (err error)
 		return err
 	}
 	// todo 硬件交互
-	inE.alarmTimer <- signalTemplateID
+	inE.signal <- signalTemplateID
 	log.Info("Send Infrared Signal ID-", signalTemplateID)
 
 	return
@@ -61,26 +61,66 @@ func (inE *infraredEmitter) findTemplate(signalTemplateID int) (template *Infrar
 }
 
 // 告警系统- 在空调开起 8小时 以后 自动关闭
-// todo 运行时改回 8hours
-func (inE *infraredEmitter) alarmForInfraredEmitter() {
-	ticker := time.NewTicker(5 * time.Second)
+func (inE *infraredEmitter) listenSignal() {
 	for {
 		select {
-		case signal := <-inE.alarmTimer:
+		case signal := <-inE.signal:
 			if signal == TurnOff {
-				ticker.Stop()
+				if alarmIsRunning.running {
+					stopToken <- struct{}{}
+				}
 			} else {
-				ticker = time.NewTicker(5 * time.Second)
+				go inE.alarmRun()
 			}
-
-		case <-ticker.C:
-			// 不使用异步方式会导致死锁
-			go inE.SendInfraredSignal(TurnOff)
-			<-inE.alarmTimer
-
-			log.Info("空调告警系统：8小时自动关闭")
-			ticker.Stop()
-
 		}
 	}
+}
+
+var stopToken = make(chan struct{})
+var alarmIsRunning = struct {
+	*sync.Mutex
+	running bool
+}{
+	Mutex:&sync.Mutex{},
+	running:false,
+}
+var ticker = make(chan *time.Ticker, 1)
+
+
+func (inE *infraredEmitter) alarmRun()  {
+	log.Debug("alarm Run called running:", alarmIsRunning.running)
+	if alarmIsRunning.running {
+		ticker <-time.NewTicker(3 * time.Second)
+		return
+	}
+
+	alarmIsRunning.Lock()
+	alarmIsRunning.running = true
+	alarmIsRunning.Unlock()
+
+	ticker <-time.NewTicker(3 * time.Second)
+	log.Info("go func start")
+	var t *time.Ticker
+	t = time.NewTicker(3 * time.Second)
+
+Loop:
+	for {
+		log.Debug("i am in loop")
+		select {
+		case t = <-ticker:
+			log.Debug("update ticker")
+			break
+		case <-t.C:
+			log.Debug("lingggggggg")
+			inE.SendInfraredSignal(TurnOff)
+			break Loop
+		case <-stopToken:
+			log.Debug("ticker stop!")
+			break Loop
+		}
+		log.Info("go func done")
+	}
+	alarmIsRunning.Lock()
+	alarmIsRunning.running = false
+	alarmIsRunning.Unlock()
 }
