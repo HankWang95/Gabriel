@@ -17,8 +17,8 @@ func TestInfraredEmitter_SendInfraredSignal(t *testing.T) {
 	var i int
 	var err error
 	for {
-		i ++
-		if i % 5 ==0 {
+		i++
+		if i%5 == 0 {
 			err = Hobj.SendInfraredSignal(0)
 
 		} else {

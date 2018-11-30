@@ -60,6 +60,18 @@ func (inE *infraredEmitter) findTemplate(signalTemplateID int) (template *Infrar
 	}
 }
 
+// -------------------------- 空调开启超时告警系统 ----------------------------
+
+var stopToken = make(chan struct{})
+var alarmIsRunning = struct {
+	*sync.Mutex
+	running bool
+}{
+	Mutex:   &sync.Mutex{},
+	running: false,
+}
+var ticker = make(chan *time.Ticker, 1)
+
 // 告警系统- 在空调开起 8小时 以后 自动关闭
 func (inE *infraredEmitter) listenSignal() {
 	for {
@@ -76,21 +88,11 @@ func (inE *infraredEmitter) listenSignal() {
 	}
 }
 
-var stopToken = make(chan struct{})
-var alarmIsRunning = struct {
-	*sync.Mutex
-	running bool
-}{
-	Mutex:&sync.Mutex{},
-	running:false,
-}
-var ticker = make(chan *time.Ticker, 1)
-
-
-func (inE *infraredEmitter) alarmRun()  {
+// 警报器
+func (inE *infraredEmitter) alarmRun() {
 	log.Debug("alarm Run called running:", alarmIsRunning.running)
 	if alarmIsRunning.running {
-		ticker <-time.NewTicker(3 * time.Second)
+		ticker <- time.NewTicker(3 * time.Second)
 		return
 	}
 
@@ -98,7 +100,7 @@ func (inE *infraredEmitter) alarmRun()  {
 	alarmIsRunning.running = true
 	alarmIsRunning.Unlock()
 
-	ticker <-time.NewTicker(3 * time.Second)
+	ticker <- time.NewTicker(3 * time.Second)
 	log.Info("go func start")
 	var t *time.Ticker
 	t = time.NewTicker(3 * time.Second)
