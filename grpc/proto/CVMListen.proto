@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package proto;
+
+service ListenFromPi {
+	// PI 端推信息到CVM
+	rpc ListenInfo(InfoMessage) returns (Result) {}
+	rpc Channel (stream Bytes) returns (UploadStatus);
+}
+
+message InfoMessage {
+	int32 OperationType = 1; // 操作类型
+	string Data = 2;         // 内容
+}
+
+message Bytes {
+	bytes value = 1 ;
+}
+
+message Result {}
+
+enum UploadStatusCode {
+    Unknown = 0;
+    Ok = 1;
+    Failed = 2;
+}
+
+message UploadStatus {
+        string Message = 1;
+        UploadStatusCode Code = 2;
+}
