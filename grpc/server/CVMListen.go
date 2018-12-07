@@ -13,7 +13,7 @@ import (
 
 type serverGRPC struct {
 	server *grpc.Server
-	port int
+	port   int
 }
 
 func NewListener() *serverGRPC {
@@ -23,7 +23,7 @@ func NewListener() *serverGRPC {
 	return s
 }
 
-func (s *serverGRPC)Listen()  {
+func (s *serverGRPC) Listen() {
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(s.port))
 	if err != nil {
 		log.Error(err)
@@ -32,10 +32,6 @@ func (s *serverGRPC)Listen()  {
 
 	s.server = grpc.NewServer()
 	proto.RegisterListenFromPiServer(s.server, s)
-	dict := s.server.GetServiceInfo()
-	for k,v := range dict{
-		log.Debug(k, v)
-	}
 	err = s.server.Serve(listener)
 	if err != nil {
 		log.Error(err)
@@ -50,7 +46,6 @@ func (l *serverGRPC) ListenInfo(ctx context.Context, in *proto.InfoMessage) (res
 	return
 }
 
-
 func (l *serverGRPC) Channel(stream proto.ListenFromPi_ChannelServer) error {
 	newFile, err := os.Create("./newfile.txt")
 	if err != nil {
@@ -58,7 +53,6 @@ func (l *serverGRPC) Channel(stream proto.ListenFromPi_ChannelServer) error {
 	}
 	for {
 		args, err := stream.Recv()
-		log.Debug("loop ")
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -66,8 +60,8 @@ func (l *serverGRPC) Channel(stream proto.ListenFromPi_ChannelServer) error {
 
 			// upload file failed, send message to client.
 			err := stream.SendAndClose(&proto.UploadStatus{
-				Message:"not ok",
-				Code:proto.UploadStatusCode_Failed,
+				Message: "not ok",
+				Code:    proto.UploadStatusCode_Failed,
 			})
 			if err != nil {
 				log.Error(err)
@@ -78,10 +72,9 @@ func (l *serverGRPC) Channel(stream proto.ListenFromPi_ChannelServer) error {
 
 	}
 
-
 	err = stream.SendAndClose(&proto.UploadStatus{
-		Message:"ok",
-		Code:proto.UploadStatusCode_Ok,
+		Message: "ok",
+		Code:    proto.UploadStatusCode_Ok,
 	})
 	if err != nil {
 		log.Error(err)

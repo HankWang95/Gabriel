@@ -11,7 +11,7 @@ import (
 )
 
 type ClientGRPC struct {
-	client proto.ListenFromPiClient
+	client    proto.ListenFromPiClient
 	chunkSize int
 }
 
@@ -22,7 +22,7 @@ type Stats struct {
 
 func NewClientGRPC() *ClientGRPC {
 	c := &ClientGRPC{}
-	conn,err := grpc.Dial("localhost:1313", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:1313", grpc.WithInsecure())
 	if err != nil {
 		log.Error(err)
 	}
@@ -81,7 +81,6 @@ func (c *ClientGRPC) UploadFile(ctx context.Context, f string) (stats Stats, err
 			return
 		}
 
-
 		stream.Send(&proto.Bytes{
 			// because we might've read less than
 			// `chunkSize` we want to only send up to
@@ -104,10 +103,9 @@ func (c *ClientGRPC) UploadFile(ctx context.Context, f string) (stats Stats, err
 		return
 	}
 
-	log.Info(status)
-
 	if status.Code != proto.UploadStatusCode_Ok {
 		log.Error("upload fail")
+		// todo
 	} else {
 		log.Info("upload ok")
 	}
